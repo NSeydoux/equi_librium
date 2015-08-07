@@ -3,7 +3,7 @@
 #include <rider_manager.h>
 
 // TODO : Ajouter les deux mux, et les déclarer dans le tableau de mux et de pins communes
-#define MUX_COUNT 2
+#define MUX_COUNT 3
 #define CHAN_COUNT 8
 #define SENSOR_COUNT 16
 #define MAX_RIDER_COUNT 10
@@ -36,12 +36,12 @@ const int P_MODE_BUTTON = 6;
 /*** Constantes liées au multiplexeurs ***/
 // Initialisation du multiplexeur
 int selectionPins[3] = {7, 8, 9};
-int analog_pins[MUX_COUNT] = {A0, A1};//, A2, A3};
+int analog_pins[MUX_COUNT] = {A0, A1, A2};//, A3};
 Mux mux[MUX_COUNT] = 
 {
   Mux(8, A0, selectionPins, false, true),
-  Mux(8, A1, selectionPins, false, true)
-//  Mux(8, A2, selectionPins, false, true), 
+  Mux(8, A1, selectionPins, false, true),
+  Mux(8, A2, selectionPins, false, true)
 //  Mux(8, A3, selectionPins, false, true)
 };
 
@@ -55,7 +55,9 @@ float inputVoltage = 5.0;
 float outputVoltage = 0.0;
 long int maxSensorResistance = 60000;
 // valeur des résistances des capteurs
-int sensorValue[SENSOR_COUNT];
+// TODO uncomment me
+//int sensorValue[SENSOR_COUNT];
+int sensorValue[16];
 
 String dataString;
 
@@ -80,21 +82,23 @@ const byte numeral[10] =
   B11100110 //9
 };
 const byte blank = B11111111;
+const byte all = B00000000;
 
 /*************** INITIALISATION ***************/
 
 boolean init_SD()
 {
-  Serial.println("Initializing SD card...");
+  //Serial.println("Initializing SD card...");
   // make sure that the default chip select pin is set to
   // output, even if you don't use it:
   if (!SD.begin(P_CHIPSELECT)) 
   {
-    Serial.println("Card failed, or not present");
+    //Serial.println("Card failed, or not present");
     // don't do anything more:
+    blink_error();
     return false;
   }
-  Serial.println("card initialized.");
+  //Serial.println("card initialized.");
   return true;
 }
 
@@ -110,8 +114,10 @@ void init_var()
     mux[i].init();
   }
   current_mode = SELECT;
-  riderManager.init();
-  afficher_nombre(current_rider_number);
+  if(!riderManager.init())
+  {
+    blink_error();
+  }
 }
 
 void init_pins()
@@ -147,7 +153,6 @@ boolean isMeasureEnabled()
 // choisir le numéro  du cavalier pour lequel on va faire une séance de mesures.
 void select_rider()
 {
-  Serial.println("Selecting the rider...");
   while(!isMeasureEnabled())
   {
     if(isRiderButtonPressed())
@@ -156,31 +161,92 @@ void select_rider()
       afficher_nombre(current_rider_number);
       if(current_rider_number > riderManager.getNumberOfRiders())
       {
-         riderManager.addRider();
+         if(!riderManager.addRider())
+         {
+           blink_error();
+         }
       }
     }
     delay(100);
   }
-  Serial.print("Selected rider : ");
-  Serial.println(current_rider_number);
 }
 
 // TODO : Mesurer le temps d'exécution de cette fonction
 void perform_measure()
 {
-   Serial.println("Measure started");
+   //Serial.println("Measure started");
    DATAFILE = riderManager.addRecord(current_rider_number);
-   while(isMeasureEnabled())
+   // TODO uncomment me
+   /*while(isMeasureEnabled())
    {
      for(int i=0; i<CHAN_COUNT; i++)
      {
        read_chan_value(i);
      }
      writeSensorValue(DATAFILE);
+   }*/
+   // TODO comment loop
+   while(isMeasureEnabled())
+   {
+     tmp_read_input();
+     writeSensorValue(DATAFILE);
    }
-   Serial.println("Measure done");
+   //Serial.println("Measure done");
    DATAFILE.close();
-   Serial.println("File closed");
+   //Serial.println("File closed");
+}
+
+// fonction qui sert à lire les entrée tant que la carte a un défaut
+void tmp_read_input()
+{
+   for(int c=0; c<CHAN_COUNT; c++)
+   {
+     mux[0].selectChan(c);
+     for(int m=0; m<MUX_COUNT; m++)
+     {
+       // On remplace les valeurs mesurées sur les channels defecteux par les 
+       // valeurs mesurées sur les autres channels
+       outputVoltage = mux[m].readComPin() * (5.0 / 1024.0);
+       if(m != 2)
+       {
+         if(m == 1 && c > 4)
+         {
+           switch(c)
+           {
+             // pour 5 et 7 on ne fait rien, et pour 6 on enregistre dans la case 13 du tableau (pour le capteur 14)
+              case 5:
+              break;
+              case 6:
+                sensorValue[13] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
+              break;
+              case 7:
+              break;
+              default:
+              break;
+           }
+         }
+         else
+         {
+           sensorValue[c+m*CHAN_COUNT] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
+         }
+       }
+       else
+       {
+          if(c == 0)
+          {
+            sensorValue[14] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
+          }
+          else if(c == 1)
+          {
+            sensorValue[15] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
+          }
+          else
+          {
+             break; 
+          }
+       }
+     }
+   }
 }
 
 // Lit la valeur de la channel chan sur tous les multiplexeurs
@@ -189,11 +255,10 @@ void read_chan_value(int chan)
   // Il suffit de sélectionner la channel une fois, les 4 mutliplexeurs étant 
   // cablés de la meme façon
   mux[0].selectChan(chan);
-  delay(5);
   for(int m=0; m<MUX_COUNT; m++)
   {
     outputVoltage = mux[m].readComPin() * (5.0 / 1024.0);
-    Serial.println("Reading value number "+String(chan+m*CHAN_COUNT));
+    //Serial.println("Reading value number "+String(chan+m*CHAN_COUNT));
     sensorValue[chan+m*CHAN_COUNT] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
   }
 }
@@ -202,11 +267,11 @@ void read_chan_value(int chan)
 // sur la carte SD
 void writeSensorValue(File f)
 {
-    Serial.println("Writing new record...");
     dataString="";
     for(int i=0; i<SENSOR_COUNT; i++)
     {
-      if(sensorValue[i]>0)
+      // 2 est une valeur seuil arbitraire pour filtrer les erreurs de mesures
+      if(sensorValue[i]>2)
       {
         dataString += sensorValue[i];
       }
@@ -221,7 +286,9 @@ void writeSensorValue(File f)
     }
     dataString += "\n";
     f.println(dataString);
-    Serial.println("New record written");
+    Serial.println(dataString);
+    // FIXME effacer la ligne suivante
+    //delay(300);
 }
 
 /*************** UTILITAIRE AFFICHEUR 7 SEGMENTS ***************/
@@ -235,6 +302,22 @@ void blink_segment()
    afficher_nombre(current_rider_number);
    delay(200); 
   }
+}
+
+void blink_error()
+{
+  while(true)
+  {
+    blink_once();
+  }
+}
+
+void blink_once()
+{
+    afficher_data(blank);
+    delay(200);
+    afficher_data(all);
+    delay(200);
 }
 
 void afficher_data(char data)
@@ -285,6 +368,12 @@ void setup()
   delay(500);
   init_var();
   delay(500);
+  while(isMeasureEnabled())
+  {
+    // Si le bouton de mode est enclenché, on stoppe le processus
+    blink_once();
+  }
+  afficher_nombre(current_rider_number);
 }
 
 void loop() 
@@ -296,12 +385,11 @@ void loop()
      break;
    case RECORD:
      blink_segment();
-     while(isMeasureEnabled())
-     {
-       perform_measure();
-     }
+     perform_measure();
      blink_segment();
      break;
+   default:
+     blink_error();
   }
   // Transition d'un mode à l'autre si nécessaire
   if(isMeasureEnabled())
@@ -312,5 +400,4 @@ void loop()
   {
     current_mode = SELECT;
   }
-  delay(100);
 }
