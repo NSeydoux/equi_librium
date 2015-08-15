@@ -23,7 +23,9 @@ class Equilibrium_manager():
     def __init__(self):
         self.conf_map = {}
         self.sensor_values = []
-        self.mass_centers = []
+        self.sensor_centers = []
+        self.sensor_centers_x = []
+        self.sensor_centers_y = []
 
     def read_config_file(self, input_path):
         # le fichier de config se présente comme suit :
@@ -33,10 +35,11 @@ class Equilibrium_manager():
         # - ligne par ligne, les coordonnées en [x,y] de chaque capteur -> on utilise eval
         config = ConfigParser.ConfigParser()
         config.read(input_path)
-        largeur = config.get("GRID_GEOMETRY", "grid_length")
-        hauteur = config.get("GRID_GEOMETRY", "grid_heigth")
-        nbr_capteurs = config.get("GRID_GEOMETRY", "sensors_number")
+        largeur = int(config.get("GRID_GEOMETRY", "grid_length"))
+        hauteur = int(config.get("GRID_GEOMETRY", "grid_heigth"))
+        nbr_capteurs = int(config.get("GRID_GEOMETRY", "sensors_number"))
         sensor_layout = eval(config.get("SENSOR_LAYOUT", "layout"))
+        square_side = float(config.get("GRID_GEOMETRY", "square_side"))
 #         config = open(input_path, "r")
 #         largeur = int(config.readline())
 #         hauteur = int(config.readline())
@@ -44,7 +47,12 @@ class Equilibrium_manager():
 #         sensors_layout = []
 #         for i in range(nbr_capteurs):
 #             sensors_layout.append(eval(config.readline()))
-        self.conf_map =  {"largeur":largeur, "hauteur":hauteur, "nbr_capteurs":nbr_capteurs, "sensors_layout":sensor_layout}
+        self.conf_map =  {"largeur":largeur,
+                          "hauteur":hauteur,
+                          "nbr_capteurs":nbr_capteurs,
+                          "sensors_layout":sensor_layout,
+                          "square_side":square_side,
+                          "center":[float(largeur*square_side)/2.0, float(hauteur*square_side)/2.0]}
 
     def read_data_file(self, input_path):
         # chaque ligne comporte une série de valeurs, chacune liée à un capteur.
@@ -57,6 +65,8 @@ class Equilibrium_manager():
             sensor_values.append(line.split(","))
             # on converti la dernière ligne de valeurs mesurées en integer
             for i in range(len(sensor_values[len(sensor_values)-1])):
+                # 250 est un choix arbitraire de mesure minimale, et sert donc de 0 : pour une valeur de résistance de 250, le carré sera blanc
+                # plus la valeur de résistance est élevée, plus le carré sera noir
                 sensor_values[len(sensor_values)-1][i] = 250.0/float(sensor_values[len(sensor_values)-1][i])
         self.sensor_values = sensor_values
 
@@ -75,7 +85,7 @@ class Equilibrium_manager():
 
         fig = plt.figure()
         fig.set_dpi(100)
-        ax = plt.axes(xlim=(0, self.conf_map.get("largeur")), ylim=(0, self.conf_map.get("hauteur")))
+        ax = plt.axes(xlim=(0, self.conf_map.get("largeur")*self.conf_map.get("square_side")), ylim=(0, self.conf_map.get("hauteur")*self.conf_map.get("square_side")))
         # values = []
         # for i in range(10):
         #     values.append([i*j for j in range(10)])
@@ -85,7 +95,11 @@ class Equilibrium_manager():
         for i in range(self.conf_map.get("largeur")):
             patches.append([])
             for j in range(self.conf_map.get("hauteur")):
-                patches[i].append(plt.Rectangle((i, j), 1, 1, 0.0))
+                patches[i].append(plt.Rectangle((i*self.conf_map.get("square_side"), j*self.conf_map.get("square_side")), self.conf_map.get("square_side"), self.conf_map.get("square_side"), 0.0))
+                # Le centre de gravité se trouve à la moitié du rectangle en x et en y
+                self.sensor_centers.append([i*self.conf_map.get("square_side")+self.conf_map.get("square_side")/2, j*self.conf_map.get("square_side")+self.conf_map.get("square_side")/2])
+                self.sensor_centers_x.append(i*self.conf_map.get("square_side")+self.conf_map.get("square_side")/2)
+                self.sensor_centers_y.append(j*self.conf_map.get("square_side")+self.conf_map.get("square_side")/2)
 
         def init():
             for i in range(self.conf_map.get("largeur")):
@@ -100,7 +114,11 @@ class Equilibrium_manager():
         #     patch.center = (x, y)
         #     patch.set_color(str(float((i%99))/100.0))
         #     print float((i%99))/100.0
-        #     return patch,
+        #     return patch
+            mass_center_x = 0
+            mass_center_y = 0
+            sum_x = 0
+            sum_y = 0
             for j in range(self.conf_map.get("largeur")):
                 for k in range(self.conf_map.get("hauteur")):
                     #patches[j][k].set_color((str(float(((j*k+i)%100))/100.0)))
@@ -112,17 +130,29 @@ class Equilibrium_manager():
                     # donc cconfig_map.get("sensors_layout").index([j,k]) retourne l'index du capteur situé en j,k
                     if([j, k] in self.conf_map.get("sensors_layout")):
                         color = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
+                        #print math.floor(color*1000)
+                        mass_center_x += color*self.sensor_centers_x[self.conf_map.get("sensors_layout").index([j,k])]
+                        sum_x += color
+                        mass_center_y += color*self.sensor_centers_y[self.conf_map.get("sensors_layout").index([j,k])]
+                        sum_y += color
                     else:
+                        # Dans ce cas, pas de capteur aux coordonnées demandées
                         color = 1
                     patches[j][k].set_color((str(color)))
                     #patches[j][k].set_color((str(color)))
+            mass_center_x = float(mass_center_x)/float(sum_x)
+            mass_center_y = float(mass_center_y)/float(sum_y)
+            plt.plot([mass_center_y],[mass_center_x], '+b')
+
             return [val for sublist in patches for val in sublist]
 
         anim = animation.FuncAnimation(fig, animate,
                                        init_func=init,
                                        #frames=360,
                                        interval=50,
-                                       blit=True)
+                                       blit=False)
+        plt.plot(self.sensor_centers_x, self.sensor_centers_y, 'xr')
+        plt.plot([self.conf_map.get("center")[0]], [self.conf_map.get("center")[1]], 'ob')
         plt.show()
         #return plt
 
