@@ -14,6 +14,7 @@ from ttk import Frame
 import tkFileDialog
 from matplotlib import pyplot as plt
 from matplotlib import animation
+import ConfigParser
 
 # def openFile():
 
@@ -22,6 +23,7 @@ class Equilibrium_manager():
     def __init__(self):
         self.conf_map = {}
         self.sensor_values = []
+        self.mass_centers = []
 
     def read_config_file(self, input_path):
         # le fichier de config se présente comme suit :
@@ -29,14 +31,20 @@ class Equilibrium_manager():
         # - nombre de cases en hauteur
         # - nombre de capteurs
         # - ligne par ligne, les coordonnées en [x,y] de chaque capteur -> on utilise eval
-        config = open(input_path, "r")
-        largeur = int(config.readline())
-        hauteur = int(config.readline())
-        nbr_capteurs = int(config.readline())
-        sensors_layout = []
-        for i in range(nbr_capteurs):
-            sensors_layout.append(eval(config.readline()))
-        self.conf_map =  {"largeur":largeur, "hauteur":hauteur, "nbr_capteurs":nbr_capteurs, "sensors_layout":sensors_layout}
+        config = ConfigParser.ConfigParser()
+        config.read(input_path)
+        largeur = config.get("GRID_GEOMETRY", "grid_length")
+        hauteur = config.get("GRID_GEOMETRY", "grid_heigth")
+        nbr_capteurs = config.get("GRID_GEOMETRY", "sensors_number")
+        sensor_layout = eval(config.get("SENSOR_LAYOUT", "layout"))
+#         config = open(input_path, "r")
+#         largeur = int(config.readline())
+#         hauteur = int(config.readline())
+#         nbr_capteurs = int(config.readline())
+#         sensors_layout = []
+#         for i in range(nbr_capteurs):
+#             sensors_layout.append(eval(config.readline()))
+        self.conf_map =  {"largeur":largeur, "hauteur":hauteur, "nbr_capteurs":nbr_capteurs, "sensors_layout":sensor_layout}
 
     def read_data_file(self, input_path):
         # chaque ligne comporte une série de valeurs, chacune liée à un capteur.
@@ -51,6 +59,13 @@ class Equilibrium_manager():
             for i in range(len(sensor_values[len(sensor_values)-1])):
                 sensor_values[len(sensor_values)-1][i] = 250.0/float(sensor_values[len(sensor_values)-1][i])
         self.sensor_values = sensor_values
+
+#     def compute_center_mass(self):
+#         for i in range(len(self.sensor_values)):
+#             center = (0,0)
+#             sum = 0
+#             for j in range(len(self.sensor_values[i])):
+#                 center
 
     def render_animation(self):
         #config_map = self.read_config_file("/home/seydoux/Programmation/Scripts_python/liclipse_workspace/Equilibrium_GUI/config")
