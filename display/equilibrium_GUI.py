@@ -16,6 +16,8 @@ from matplotlib import pyplot as plt
 from matplotlib import animation
 import ConfigParser
 
+# Intervalle entre deux instants de mesures (en ms)
+INTERVAL = 50
 # def openFile():
 
 class Equilibrium_manager():
@@ -26,6 +28,10 @@ class Equilibrium_manager():
         self.sensor_centers = []
         self.sensor_centers_x = []
         self.sensor_centers_y = []
+
+                # Cette fonction retourne les coordonnées du centre du carré (i,j) de la grille
+    def get_square_center(self, i, j):
+        return [self.conf_map.get("square_side")*(i+0.5), self.conf_map.get("square_side")*(j+0.5)]
 
     def read_config_file(self, input_path):
         # le fichier de config se présente comme suit :
@@ -68,6 +74,8 @@ class Equilibrium_manager():
                 # 250 est un choix arbitraire de mesure minimale, et sert donc de 0 : pour une valeur de résistance de 250, le carré sera blanc
                 # plus la valeur de résistance est élevée, plus le carré sera noir
                 sensor_values[len(sensor_values)-1][i] = 250.0/float(sensor_values[len(sensor_values)-1][i])
+                # UNCOMMENT ME for test files
+                # sensor_values[len(sensor_values)-1][i] = float(sensor_values[len(sensor_values)-1][i])
         self.sensor_values = sensor_values
 
 #     def compute_center_mass(self):
@@ -76,6 +84,37 @@ class Equilibrium_manager():
 #             sum = 0
 #             for j in range(len(self.sensor_values[i])):
 #                 center
+    def export_chart(self, dest_path):
+        dest_file = open(dest_path, "w")
+        dest_file.write("Temps (ms), Centre gravité horizontal (cm), Centre gravité vertical (cm)")
+        for i in range(len(self.sensor_values)-1):
+            mass_center_x = 0
+            mass_center_y = 0
+            sum_x = 0
+            sum_y = 0
+            for j in range(self.conf_map.get("largeur")):
+                for k in range(self.conf_map.get("hauteur")):
+
+                    # le placement des capteurs est stocké dans l'ordre dans la map de configuration
+                    # donc cconfig_map.get("sensors_layout").index([j,k]) retourne l'index du capteur situé en j,k
+                    if([j, k] in self.conf_map.get("sensors_layout")):
+                        center = self.get_square_center(j, k)
+                        color = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
+                        mass_center_x += color*center[0]
+                        sum_x += color
+                        mass_center_y += color*center[1]
+                        sum_y += color
+                    else:
+                        # Dans ce cas, pas de capteur aux coordonnées demandées
+                        color = 1
+            if(sum_x > 0):
+                mass_center_x = float(float(mass_center_x)/float(sum_x))
+            if(sum_y > 0):
+                mass_center_y = float(float(mass_center_y)/float(sum_y))
+            if(sum_x > 0 or sum_y > 0):
+                dest_file.write(str(i*50)+","+str(mass_center_x)+","+str(mass_center_y)+"\n")
+
+
 
     def render_animation(self):
         #config_map = self.read_config_file("/home/seydoux/Programmation/Scripts_python/liclipse_workspace/Equilibrium_GUI/config")
@@ -83,9 +122,33 @@ class Equilibrium_manager():
         #data = self.read_data_file("/home/seydoux/Programmation/Scripts_python/liclipse_workspace/Equilibrium_GUI/values")
         #print self.sensor_values
 
+        # Définition de la colormap
+        cdict ={
+        'red':   [(0.0,  0.0, 0.0),
+                   (0.5,  1.0, 1.0),
+                   (1.0,  1.0, 1.0)],
+
+         'green': [(0.0,  0.0, 0.0),
+                   (0.25, 0.0, 0.0),
+                   (0.75, 1.0, 1.0),
+                   (1.0,  1.0, 1.0)],
+
+         'blue':  [(0.0,  0.0, 0.0),
+                   (0.5,  0.0, 0.0),
+                   (1.0,  1.0, 1.0)]
+        }
+
+        #color_map = matplotlib.colors.LinearSegmentedColormap('my_colormap', cdict, 1024)
+        #color_converter = matplotlib.cm.ScalarMappable(cmap=color_map)
+        #color_converter.autoscale()
+        #plt.colorbar(mappable=color_converter)
+        #plt.pcolor(cm)
+        #plt.colorbar()
+
         fig = plt.figure()
         fig.set_dpi(100)
-        ax = plt.axes(xlim=(0, self.conf_map.get("largeur")*self.conf_map.get("square_side")), ylim=(0, self.conf_map.get("hauteur")*self.conf_map.get("square_side")))
+        ax = plt.axes(xlim=(0, self.conf_map.get("largeur")*self.conf_map.get("square_side")), ylim=(0, self.conf_map.get("hauteur")*self.conf_map.get("square_side")+5))
+        time_text = ax.text(0, 0, '',horizontalalignment='left',verticalalignment='top', transform=ax.transAxes)
         # values = []
         # for i in range(10):
         #     values.append([i*j for j in range(10)])
@@ -119,6 +182,8 @@ class Equilibrium_manager():
             mass_center_y = 0
             sum_x = 0
             sum_y = 0
+            #time_text.set_text("test")
+            plt.title("Time : "+str((i*INTERVAL)/1000)+"s")
             for j in range(self.conf_map.get("largeur")):
                 for k in range(self.conf_map.get("hauteur")):
                     #patches[j][k].set_color((str(float(((j*k+i)%100))/100.0)))
@@ -129,28 +194,37 @@ class Equilibrium_manager():
                     # le placement des capteurs est stocké dans l'ordre dans la map de configuration
                     # donc cconfig_map.get("sensors_layout").index([j,k]) retourne l'index du capteur situé en j,k
                     if([j, k] in self.conf_map.get("sensors_layout")):
+                        center = self.get_square_center(j, k)
                         color = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
-                        #print math.floor(color*1000)
-                        mass_center_x += color*self.sensor_centers_x[self.conf_map.get("sensors_layout").index([j,k])]
+                        mass_center_x += color*center[0]
                         sum_x += color
-                        mass_center_y += color*self.sensor_centers_y[self.conf_map.get("sensors_layout").index([j,k])]
+                        mass_center_y += color*center[1]
                         sum_y += color
                     else:
                         # Dans ce cas, pas de capteur aux coordonnées demandées
                         color = 1
                     patches[j][k].set_color((str(color)))
-                    #patches[j][k].set_color((str(color)))
-            mass_center_x = float(mass_center_x)/float(sum_x)
-            mass_center_y = float(mass_center_y)/float(sum_y)
-            plt.plot([mass_center_y],[mass_center_x], '+b')
+                    # FIXME : Comment marche une colormap ?
+                    #print color_converter.to_rgba([color])
+                    #print color_converter.to_rgba(str(color))
+                    #print "-----------"
+                    #patches[j][k].set_color(color_converter.to_rgba(color))
+            if(sum_x > 0):
+                mass_center_x = float(float(mass_center_x)/float(sum_x))
+            if(sum_y > 0):
+                mass_center_y = float(float(mass_center_y)/float(sum_y))
+            if(sum_x > 0 or sum_y > 0):
+                plt.plot([mass_center_x],[mass_center_y], '+b')
 
             return [val for sublist in patches for val in sublist]
+            #return [val for sublist in patches for val in sublist] + [time_text]
 
         anim = animation.FuncAnimation(fig, animate,
                                        init_func=init,
                                        #frames=360,
-                                       interval=50,
+                                       interval=INTERVAL,
                                        blit=False)
+
         plt.plot(self.sensor_centers_x, self.sensor_centers_y, 'xr')
         plt.plot([self.conf_map.get("center")[0]], [self.conf_map.get("center")[1]], 'ob')
         plt.show()
@@ -181,7 +255,7 @@ class Equilibrium_GUI(Frame):
 
         b_import = Button(master=frame, text='Importer', command=self.open_data_file)
         b_import.grid(row=1, column=0)
-        b_export = Button(master=frame, text='Exporter')
+        b_export = Button(master=frame, text='Exporter', command=self.export_data)
         b_export.grid(row=1, column=1)
         b_play = Button(master=frame, text='Play', command=self.render)
         b_play.grid(row=1, column=2)
@@ -206,6 +280,13 @@ class Equilibrium_GUI(Frame):
         fl = dlg.show()
         if fl != '':
             self.manager.read_config_file(fl)
+
+    def export_data(self):
+        ftypes = [('All files', '*')]
+        dlg = tkFileDialog.SaveAs(self, filetypes = ftypes)
+        fl = dlg.show()
+        if fl != '':
+            self.manager.export_chart(fl)
 
     def render(self):
         self.manager.render_animation()
