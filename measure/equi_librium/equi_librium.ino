@@ -3,9 +3,10 @@
 #include <rider_manager.h>
 
 // TODO : Ajouter les deux mux, et les déclarer dans le tableau de mux et de pins communes
-#define MUX_COUNT 3
+#define MUX_COUNT 4
 #define CHAN_COUNT 8
-#define SENSOR_COUNT 16
+// POur l'instant, 2 entrées sont inopérables
+#define SENSOR_COUNT 30
 #define MAX_RIDER_COUNT 10
 
 /*************** DÉCLARATIONS ***************/
@@ -36,13 +37,13 @@ const int P_MODE_BUTTON = 6;
 /*** Constantes liées au multiplexeurs ***/
 // Initialisation du multiplexeur
 int selectionPins[3] = {7, 8, 9};
-int analog_pins[MUX_COUNT] = {A0, A1, A2};//, A3};
+int analog_pins[MUX_COUNT] = {A0, A1, A2, A3};
 Mux mux[MUX_COUNT] = 
 {
   Mux(8, A0, selectionPins, false, true),
   Mux(8, A1, selectionPins, false, true),
-  Mux(8, A2, selectionPins, false, true)
-//  Mux(8, A3, selectionPins, false, true)
+  Mux(8, A2, selectionPins, false, true),
+  Mux(8, A3, selectionPins, false, true)
 };
 
 /*** Constantes liées aux cavaliers ***/
@@ -55,9 +56,7 @@ float inputVoltage = 5.0;
 float outputVoltage = 0.0;
 long int maxSensorResistance = 60000;
 // valeur des résistances des capteurs
-// TODO uncomment me
-//int sensorValue[SENSOR_COUNT];
-int sensorValue[16];
+int sensorValue[SENSOR_COUNT];
 
 String dataString;
 
@@ -196,6 +195,41 @@ void perform_measure()
    //Serial.println("File closed");
 }
 
+// Computes the number of the sensor in the array 
+// regarding the multiplexer and the channel
+// returns -1 if no sensor can be matched
+int tmp_sensor_num_match(int mux_n, int chan_n)
+{
+  int sensor_n;
+   switch(mux_n)
+   {
+     case 0:
+       sensor_n = chan_n+mux_n*CHAN_COUNT;
+     break;
+     case 1:
+       if(chan_n<6)
+       {
+         // normal case, before the broken inputs
+         sensor_n = chan_n+mux_n*CHAN_COUNT;
+       }
+       else
+       {
+         sensor_n = -1;
+       }
+     break;
+     case 2:
+       sensor_n = chan_n+mux_n*CHAN_COUNT-2;
+     break;
+     case 3:
+       sensor_n = chan_n+mux_n*CHAN_COUNT-2;
+     break;
+     default:
+       sensor_n = -1;
+     break;
+   }
+   return sensor_n;
+}
+
 // fonction qui sert à lire les entrée tant que la carte a un défaut
 void tmp_read_input()
 {
@@ -207,43 +241,10 @@ void tmp_read_input()
        // On remplace les valeurs mesurées sur les channels defecteux par les 
        // valeurs mesurées sur les autres channels
        outputVoltage = mux[m].readComPin() * (5.0 / 1024.0);
-       if(m != 2)
+       int sensor_val_num = tmp_sensor_num_match(m, c);
+       if(sensor_val_num != -1)
        {
-         if(m == 1 && c > 4)
-         {
-           switch(c)
-           {
-             // pour 5 et 7 on ne fait rien, et pour 6 on enregistre dans la case 13 du tableau (pour le capteur 14)
-              case 5:
-              break;
-              case 6:
-                sensorValue[13] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
-              break;
-              case 7:
-              break;
-              default:
-              break;
-           }
-         }
-         else
-         {
-           sensorValue[c+m*CHAN_COUNT] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
-         }
-       }
-       else
-       {
-          if(c == 0)
-          {
-            sensorValue[14] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
-          }
-          else if(c == 1)
-          {
-            sensorValue[15] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
-          }
-          else
-          {
-             break; 
-          }
+         sensorValue[sensor_val_num] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
        }
      }
    }
@@ -270,6 +271,7 @@ void writeSensorValue(File f)
     dataString="";
     for(int i=0; i<SENSOR_COUNT; i++)
     {
+      //Serial.println("Valeur pour le capteur "+i+" : "+sensorValue[i]);
       // 2 est une valeur seuil arbitraire pour filtrer les erreurs de mesures
       if(sensorValue[i]>2)
       {

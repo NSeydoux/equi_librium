@@ -86,7 +86,7 @@ class Equilibrium_manager():
 #                 center
     def export_chart(self, dest_path):
         dest_file = open(dest_path, "w")
-        dest_file.write("Temps (ms), Centre gravité horizontal (cm), Centre gravité vertical (cm)")
+        dest_file.write("Temps (ms), Centre gravité horizontal (cm), Centre gravité vertical (cm)\n")
         for i in range(len(self.sensor_values)-1):
             mass_center_x = 0
             mass_center_y = 0
