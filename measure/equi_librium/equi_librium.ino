@@ -292,12 +292,8 @@ void writeSensorValue(File f)
         dataString += ",";
       }
     }
-    dataString += "\n";
     f.println(dataString);
-    //Serial.println("    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13,   14,   15,   16,   17,   18,   19,   20,   21,   22,   23,   24,   25,   26,   27,   28,   29,   30");
-    Serial.println(dataString);
-    // FIXME effacer la ligne suivante
-    //delay(300);
+    //Serial.println(dataString);
 }
 
 /*************** UTILITAIRE AFFICHEUR 7 SEGMENTS ***************/
@@ -372,7 +368,7 @@ void envoi_ordre(int dataPin, int clockPin, boolean sens, char donnee)
 
 void setup()
 {
-  Serial.begin(9600);
+  //Serial.begin(9600);
   init_pins();
   delay(500);
   init_var();
