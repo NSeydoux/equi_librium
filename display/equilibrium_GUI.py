@@ -45,6 +45,11 @@ class Equilibrium_manager():
         hauteur = int(config.get("GRID_GEOMETRY", "grid_heigth"))
         nbr_capteurs = int(config.get("GRID_GEOMETRY", "sensors_number"))
         sensor_layout = eval(config.get("SENSOR_LAYOUT", "layout"))
+        # On permute les valeurs de x et y du layout
+        for i in range(len(sensor_layout)):
+            tmp = sensor_layout[i][0]
+            sensor_layout[i][0] = sensor_layout[i][1]
+            sensor_layout[i][1] = tmp
         square_side = float(config.get("GRID_GEOMETRY", "square_side"))
 #         config = open(input_path, "r")
 #         largeur = int(config.readline())
@@ -59,6 +64,7 @@ class Equilibrium_manager():
                           "sensors_layout":sensor_layout,
                           "square_side":square_side,
                           "center":[float(largeur*square_side)/2.0, float(hauteur*square_side)/2.0]}
+        print sensor_layout
 
     def read_data_file(self, input_path):
         # chaque ligne comporte une série de valeurs, chacune liée à un capteur.
@@ -201,6 +207,7 @@ class Equilibrium_manager():
                         mass_center_y += color*center[1]
                         sum_y += color
                     else:
+                        print str([j, k])+" n'est pas dans le layout de capteurs"
                         # Dans ce cas, pas de capteur aux coordonnées demandées
                         color = 1
                     patches[j][k].set_color((str(color)))
