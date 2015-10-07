@@ -6,7 +6,7 @@
 #define MUX_COUNT 4
 #define CHAN_COUNT 8
 // POur l'instant, 2 entrées sont inopérables
-#define SENSOR_COUNT 30
+#define SENSOR_COUNT 32
 #define MAX_RIDER_COUNT 10
 
 /*************** DÉCLARATIONS ***************/
@@ -195,6 +195,11 @@ void perform_measure()
    //Serial.println("File closed");
 }
 
+int regular_sensor_num_match(int mux_n, int chan_n)
+{
+  return chan_n+mux_n*CHAN_COUNT;
+}
+
 // Computes the number of the sensor in the array 
 // regarding the multiplexer and the channel
 // returns -1 if no sensor can be matched
@@ -241,7 +246,8 @@ void tmp_read_input()
        // On remplace les valeurs mesurées sur les channels defecteux par les 
        // valeurs mesurées sur les autres channels
        outputVoltage = mux[m].readComPin() * (5.0 / 1024.0);
-       int sensor_val_num = tmp_sensor_num_match(m, c);
+       //int sensor_val_num = tmp_sensor_num_match(m, c);
+       int sensor_val_num = regular_sensor_num_match(m, c);
        if(sensor_val_num != -1)
        {
          sensorValue[sensor_val_num] = int(inputVoltage*fixedResistor/outputVoltage-fixedResistor);
@@ -288,6 +294,7 @@ void writeSensorValue(File f)
     }
     dataString += "\n";
     f.println(dataString);
+    //Serial.println("    1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13,   14,   15,   16,   17,   18,   19,   20,   21,   22,   23,   24,   25,   26,   27,   28,   29,   30");
     Serial.println(dataString);
     // FIXME effacer la ligne suivante
     //delay(300);
