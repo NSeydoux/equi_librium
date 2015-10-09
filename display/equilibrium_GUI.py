@@ -26,6 +26,7 @@ class Equilibrium_manager():
 
     def __init__(self):
         self.conf_map = {}
+        self.raw_measures = []
         self.sensor_values = []
         self.color_level = []
         self.sensor_centers = []
@@ -85,16 +86,18 @@ class Equilibrium_manager():
         # les valeurs sont séparées par des virgules
         data_file = open(input_path, "r")
         data = data_file.readlines()
+        raw_measures = []
         sensor_values = []
         color_values = []
         for line in data:
             line = line.rstrip()
             if(len(line) > 32):
-                sensor_values.append(map(float, line.split(",")))
+                raw_measures.append(map(float, line.split(",")))
+                sensor_values.append(map(self.normalize_sensor_value, raw_measures[-1]))
                 #print sensor_values[-1]
                 #print map(self.convert_sensor_value_to_color, sensor_values[-1])
 
-                color_values.append(map(self.convert_sensor_value_to_color, sensor_values[-1]))
+                color_values.append(map(self.convert_sensor_value_to_color, raw_measures[-1]))
             self.sensor_values = sensor_values
             self.color_level = color_values
 
@@ -213,7 +216,7 @@ class Equilibrium_manager():
                     if([j, k] in self.conf_map.get("sensors_layout")):
                         center = self.get_square_center(j, k)
                         color = self.color_level[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
-                        value = self.color_level[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
+                        value = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
                         mass_center_x += value*center[0]
                         sum_x += value
                         mass_center_y += value*center[1]
