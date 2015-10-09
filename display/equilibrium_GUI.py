@@ -18,6 +18,8 @@ import ConfigParser
 
 # Intervalle entre deux instants de mesures (en ms)
 INTERVAL = 50
+# Valeur du blanc : plus elle est haute, plus le contraste est faible.
+ZERO = 200.0 # Original : 250.0
 # def openFile():
 
 class Equilibrium_manager():
@@ -25,6 +27,7 @@ class Equilibrium_manager():
     def __init__(self):
         self.conf_map = {}
         self.sensor_values = []
+        self.color_level = []
         self.sensor_centers = []
         self.sensor_centers_x = []
         self.sensor_centers_y = []
@@ -66,6 +69,16 @@ class Equilibrium_manager():
                           "center":[float(largeur*square_side)/2.0, float(hauteur*square_side)/2.0]}
         print sensor_layout
 
+    def convert_sensor_value_to_color(self, value):
+        # ZERO est un choix arbitraire de mesure minimale, et sert donc de 0 : pour une valeur de résistance de 250, le carré sera blanc
+        # plus la valeur de résistance est élevée, plus le carré sera noir
+        #sensor_values[len(sensor_values)-1][i] = ZERO/float(sensor_values[len(sensor_values)-1][i])
+        #return math.exp(-1.0/float(value))
+        return ZERO/float(value)
+
+    def normalize_sensor_value(self, value):
+        return ZERO/float(value)
+
     def read_data_file(self, input_path):
         # chaque ligne comporte une série de valeurs, chacune liée à un capteur.
         # La première valeur correspond au premier capteur, la seconde au second etc
@@ -73,16 +86,17 @@ class Equilibrium_manager():
         data_file = open(input_path, "r")
         data = data_file.readlines()
         sensor_values = []
+        color_values = []
         for line in data:
-            sensor_values.append(line.split(","))
-            # on converti la dernière ligne de valeurs mesurées en integer
-            for i in range(len(sensor_values[len(sensor_values)-1])):
-                # 250 est un choix arbitraire de mesure minimale, et sert donc de 0 : pour une valeur de résistance de 250, le carré sera blanc
-                # plus la valeur de résistance est élevée, plus le carré sera noir
-                sensor_values[len(sensor_values)-1][i] = 250.0/float(sensor_values[len(sensor_values)-1][i])
-                # UNCOMMENT ME for test files
-                # sensor_values[len(sensor_values)-1][i] = float(sensor_values[len(sensor_values)-1][i])
-        self.sensor_values = sensor_values
+            line = line.rstrip()
+            if(len(line) > 32):
+                sensor_values.append(map(float, line.split(",")))
+                #print sensor_values[-1]
+                #print map(self.convert_sensor_value_to_color, sensor_values[-1])
+
+                color_values.append(map(self.convert_sensor_value_to_color, sensor_values[-1]))
+            self.sensor_values = sensor_values
+            self.color_level = color_values
 
 #     def compute_center_mass(self):
 #         for i in range(len(self.sensor_values)):
@@ -100,19 +114,16 @@ class Equilibrium_manager():
             sum_y = 0
             for j in range(self.conf_map.get("largeur")):
                 for k in range(self.conf_map.get("hauteur")):
-
                     # le placement des capteurs est stocké dans l'ordre dans la map de configuration
-                    # donc cconfig_map.get("sensors_layout").index([j,k]) retourne l'index du capteur situé en j,k
+                    # donc config_map.get("sensors_layout").index([j,k]) retourne l'index du capteur situé en j,k
                     if([j, k] in self.conf_map.get("sensors_layout")):
                         center = self.get_square_center(j, k)
-                        color = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
-                        mass_center_x += color*center[0]
-                        sum_x += color
-                        mass_center_y += color*center[1]
-                        sum_y += color
-                    else:
-                        # Dans ce cas, pas de capteur aux coordonnées demandées
-                        color = 1
+                        #color = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
+                        value = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
+                        mass_center_x += value*center[0]
+                        sum_x += value
+                        mass_center_y += value*center[1]
+                        sum_y += value
             if(sum_x > 0):
                 mass_center_x = float(float(mass_center_x)/float(sum_x))
             if(sum_y > 0):
@@ -201,14 +212,16 @@ class Equilibrium_manager():
                     # donc cconfig_map.get("sensors_layout").index([j,k]) retourne l'index du capteur situé en j,k
                     if([j, k] in self.conf_map.get("sensors_layout")):
                         center = self.get_square_center(j, k)
-                        color = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
-                        mass_center_x += color*center[0]
-                        sum_x += color
-                        mass_center_y += color*center[1]
-                        sum_y += color
+                        color = self.color_level[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
+                        value = self.color_level[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
+                        mass_center_x += value*center[0]
+                        sum_x += value
+                        mass_center_y += value*center[1]
+                        sum_y += value
                     else:
-                        print str([j, k])+" n'est pas dans le layout de capteurs"
                         # Dans ce cas, pas de capteur aux coordonnées demandées
+                        color = 1
+                    if(color > 1):
                         color = 1
                     patches[j][k].set_color((str(color)))
                     # FIXME : Comment marche une colormap ?
