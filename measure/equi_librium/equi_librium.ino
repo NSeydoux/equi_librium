@@ -184,10 +184,13 @@ void perform_measure()
      }
      writeSensorValue(DATAFILE);
    }*/
-   // TODO comment loop
+   // TODO comment loo
    while(isMeasureEnabled())
    {
+     //long t0=millis();
      tmp_read_input();
+     //long t1=millis();
+     //Serial.println("Measure : "+String(t1-t0)+"ms");
      writeSensorValue(DATAFILE);
    }
    //Serial.println("Measure done");
@@ -274,6 +277,7 @@ void read_chan_value(int chan)
 // sur la carte SD
 void writeSensorValue(File f)
 {
+    //long t0 = millis();
     dataString="";
     for(int i=0; i<SENSOR_COUNT; i++)
     {
@@ -292,8 +296,12 @@ void writeSensorValue(File f)
         dataString += ",";
       }
     }
+    //long t1=millis();
     f.println(dataString);
+    //long t2=millis();
     //Serial.println(dataString);
+    //long t3=millis();
+    //Serial.println("Building : "+String(t1-t0)+"ms, Writing : "+String(t2-t1)+"ms, Serial : "+String(t3-t2)+"ms");
 }
 
 /*************** UTILITAIRE AFFICHEUR 7 SEGMENTS ***************/
