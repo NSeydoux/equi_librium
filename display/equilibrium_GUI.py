@@ -103,8 +103,7 @@ class Equilibrium_GUI(Frame):
             self.manager.export_chart(fl)
 
     def render(self):
-        pace = self.slider.get()
-        self.manager.render_animation()
+        self.manager.render_animation(self.slider.get())
         #self.plot_figure(self.parent)
 
     def plot_figure(self, frame):
