@@ -3,12 +3,14 @@
 import math
 import matplotlib
 import Tkinter
+from Tkconstants import HORIZONTAL, DISABLED
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg#, NavigationToolbar2TkAgg
 # implement the default mpl key bindings
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
-from Tkinter import Tk, Button
+from Tkinter import Tk, Button, Scale, Label, Checkbutton, IntVar
+import tkMessageBox
 from ttk import Frame
 import tkFileDialog
 from data_manager import Equilibrium_manager
@@ -20,6 +22,16 @@ class Equilibrium_GUI(Frame):
         self.parent = parent
 
         self.manager = Equilibrium_manager()
+        # Slider setting the animation pace, in ms/frame
+        self.slider = None
+        # Variables making sure data is properly set before rendering
+        # associated with checkboxes to give user feedback
+        self.configured = IntVar()
+        self.configured.set(0)
+        self.configured_box = None
+        self.loaded = IntVar()
+        self.configured.set(0)
+        self.loaded_box = None
         self.init_UI(self.parent)
         #self.plot_figure(self.parent)
 
@@ -35,6 +47,7 @@ class Equilibrium_GUI(Frame):
 
         frame.rowconfigure(0, pad=3)
         frame.rowconfigure(1, pad=3)
+        frame.rowconfigure(2, pad=3)
 
         b_import = Button(master=frame, text='Importer', command=self.open_data_file)
         b_import.grid(row=1, column=0)
@@ -49,13 +62,30 @@ class Equilibrium_GUI(Frame):
         b_quit = Button(master=frame, text='Quitter', command=self._quit)
         b_quit.grid(row=1, column=5)
 
-    def open_data_file(self):
-        ftypes = [('All files', '*')]
-        dlg = tkFileDialog.Open(self, filetypes = ftypes)
-        fl = dlg.show()
+        slider_label_fast=Label(master=frame, text="Rapide")
+        slider_label_fast.grid(row=2, column=2)
+        slider_label_slow=Label(master=frame, text="Lent")
+        slider_label_slow.grid(row=2, column=0)
+        self.slider = Scale(master=frame, from_=150, to=15, orient=HORIZONTAL, length=100)
+        self.slider.set(25)
+        self.slider.grid(row=2, column=1)
 
-        if fl != '':
-            self.manager.read_data_file(fl)
+        self.configured_box = Checkbutton(master=frame, text="Configuré", variable=self.configured, state=DISABLED)
+        self.configured_box.grid(row=2, column=4)
+
+        self.loaded_box = Checkbutton(master=frame, text="Données chargées", variable=self.loaded,state=DISABLED)
+        self.loaded_box.grid(row=2, column=5)
+
+    def open_data_file(self):
+        if(self.configured.get() == 1):
+            ftypes = [('All files', '*')]
+            dlg = tkFileDialog.Open(self, filetypes = ftypes)
+            fl = dlg.show()
+            if fl != '':
+                self.manager.read_data_file(fl)
+                self.loaded.set(1)
+        else:
+            tkMessageBox.showwarning("Configuration non effectuee", "Il faut configurer avant d'importer les données")
 
     def open_conf_file(self):
         ftypes = [('conf files', '*.conf'), ('All files', '*')]
@@ -63,6 +93,7 @@ class Equilibrium_GUI(Frame):
         fl = dlg.show()
         if fl != '':
             self.manager.read_config_file(fl)
+            self.configured.set(1)
 
     def export_data(self):
         ftypes = [('All files', '*')]
@@ -72,6 +103,7 @@ class Equilibrium_GUI(Frame):
             self.manager.export_chart(fl)
 
     def render(self):
+        pace = self.slider.get()
         self.manager.render_animation()
         #self.plot_figure(self.parent)
 
