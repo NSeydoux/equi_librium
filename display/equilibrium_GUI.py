@@ -14,6 +14,8 @@ import tkMessageBox
 from ttk import Frame
 import tkFileDialog
 from data_manager import Equilibrium_manager
+from os import listdir
+from os.path import isfile, join
 
 class Equilibrium_GUI(Frame):
 
@@ -33,6 +35,7 @@ class Equilibrium_GUI(Frame):
         self.configured.set(0)
         self.loaded_box = None
         self.init_UI(self.parent)
+        self.test_auto_conf()
         #self.plot_figure(self.parent)
 
     def init_UI(self, frame):
@@ -75,6 +78,12 @@ class Equilibrium_GUI(Frame):
 
         self.loaded_box = Checkbutton(master=frame, text="Données chargées", variable=self.loaded,state=DISABLED)
         self.loaded_box.grid(row=2, column=5)
+
+    def test_auto_conf(self):
+        onlyfiles = [ f for f in listdir(".") if isfile(join(".",f)) ]
+        if("equi_librium.conf" in onlyfiles):
+            self.manager.read_config_file("equi_librium.conf")
+            self.configured.set(1)
 
     def open_data_file(self):
         if(self.configured.get() == 1):
