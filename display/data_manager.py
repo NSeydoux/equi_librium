@@ -122,12 +122,13 @@ class Equilibrium_manager():
         source_file = open(input_path, "r")
         pas = []
         trot = []
-        start_pas = self.convert_min_to_sec(start1)
-        start_trot= self.convert_min_to_sec(start2)
+        # INTERVAL is in ms, so let's convert everythong to ms
+        start_pas = self.convert_min_to_sec(start1)*1000
+        start_trot= self.convert_min_to_sec(start2)*1000
         data = source_file.readlines()
         elapsed_time = 0
         for line in data:
-            line = line.rstrip()
+            #line = line.rstrip()
             if(len(line) > 32):
                 elapsed_time += self.INTERVAL
                 if (elapsed_time > start_pas and elapsed_time < start_trot):

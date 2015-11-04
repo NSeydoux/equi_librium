@@ -9,7 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg#, NavigationTool
 # implement the default mpl key bindings
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
-from Tkinter import Tk, Button, Scale, Label, Checkbutton, IntVar
+from Tkinter import Tk, Button, Scale, Label, Checkbutton, IntVar, Toplevel, Entry
 import tkMessageBox
 from ttk import Frame
 import tkFileDialog
@@ -47,6 +47,7 @@ class Equilibrium_GUI(Frame):
         frame.columnconfigure(3, pad=3)
         frame.columnconfigure(4, pad=3)
         frame.columnconfigure(5, pad=3)
+        frame.columnconfigure(6, pad=3)
 
         frame.rowconfigure(0, pad=3)
         frame.rowconfigure(1, pad=3)
@@ -60,10 +61,12 @@ class Equilibrium_GUI(Frame):
         b_play.grid(row=1, column=2)
         #b_pause = Button(master=frame, text='Pause')
         #b_pause.grid(row=1, column=3)
+        b_import = Button(master=frame, text='Séparer pas/trot', command=self.open_split_file_popup)
+        b_import.grid(row=1, column=4)
         b_config = Button(master=frame, text='Configurer', command=self.open_conf_file)
-        b_config.grid(row=1, column=4)
+        b_config.grid(row=1, column=5)
         b_quit = Button(master=frame, text='Quitter', command=self._quit)
-        b_quit.grid(row=1, column=5)
+        b_quit.grid(row=1, column=6)
 
         slider_label_fast=Label(master=frame, text="Rapide")
         slider_label_fast.grid(row=2, column=2)
@@ -96,12 +99,9 @@ class Equilibrium_GUI(Frame):
         else:
             tkMessageBox.showwarning("Configuration non effectuee", "Il faut configurer avant d'importer les données")
 
-    def split_data_file(self):
-        ftypes = [('All files', '*')]
-        dlg = tkFileDialog.Open(self, filetypes = ftypes)
-        fl = dlg.show()
-        if fl != '':
-            self.manager.read_data_file(fl)
+    def open_split_file_popup(self):
+        w= popupWindow(self.master, self.manager)
+        self.master.wait_window(w.top)
 
     def open_conf_file(self):
         ftypes = [('conf files', '*.conf'), ('All files', '*')]
@@ -149,6 +149,28 @@ class Equilibrium_GUI(Frame):
         self.quit()     # stops mainloop
         self.destroy()  # this is necessary on Windows to prevent
                         # Fatal Python Error: PyEval_RestoreThread: NULL tstat
+
+class popupWindow(object):
+    def __init__(self,master,manager):
+        self.master = master
+        self.manager=manager
+        top=self.top=Toplevel(master)
+        Label(top,text="Début du pas (min:sec)").pack()
+        self.pas=Entry(top)
+        self.pas.pack()
+        Label(top,text="Début du trot (min:sec)").pack()
+        self.trot=Entry(top)
+        self.trot.pack()
+        self.b=Button(top,text='Ok',command=self.split_data_file)
+        self.b.pack()
+
+    def split_data_file(self):
+        ftypes = [('All files', '*')]
+        dlg = tkFileDialog.Open(self.master, filetypes = ftypes)
+        fl = dlg.show()
+        if fl != '':
+            self.manager.split_data_file(fl, self.pas.get(), self.trot.get())
+        self.top.destroy()
 
 def main():
     root = Tk()
