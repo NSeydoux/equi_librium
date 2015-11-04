@@ -96,6 +96,13 @@ class Equilibrium_GUI(Frame):
         else:
             tkMessageBox.showwarning("Configuration non effectuee", "Il faut configurer avant d'importer les données")
 
+    def split_data_file(self):
+        ftypes = [('All files', '*')]
+        dlg = tkFileDialog.Open(self, filetypes = ftypes)
+        fl = dlg.show()
+        if fl != '':
+            self.manager.read_data_file(fl)
+
     def open_conf_file(self):
         ftypes = [('conf files', '*.conf'), ('All files', '*')]
         dlg = tkFileDialog.Open(self, filetypes = ftypes)

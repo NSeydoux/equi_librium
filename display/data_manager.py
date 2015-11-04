@@ -110,6 +110,33 @@ class Equilibrium_manager():
             self.color_level = color_values
         print "Loaded : "+str(len(sensor_values))+" values\n"
 
+    # Helper function, transforms a time in min:sec format to a sec format
+    def convert_min_to_sec(self, time):
+        (min_, sec) = time.split(":")
+        min_ = int(min_)
+        sec = 60*min_+int(sec)
+        return sec
+
+    # Sépare le trot du pas facilement à partir des mesures de temps faites sur le terrain, au format min:sec
+    def split_data_file(self, input_path, start1, start2):
+        source_file = open(input_path, "r")
+        pas = []
+        trot = []
+        start_pas = self.convert_min_to_sec(start1)
+        start_trot= self.convert_min_to_sec(start2)
+        data = source_file.readlines()
+        elapsed_time = 0
+        for line in data:
+            line = line.rstrip()
+            if(len(line) > 32):
+                elapsed_time += self.INTERVAL
+                if (elapsed_time > start_pas and elapsed_time < start_trot):
+                    pas.append(line)
+                elif(elapsed_time > start_trot):
+                    trot.append(line)
+        open(input_path+"_PAS", "w").writelines(pas)
+        open(input_path+"_TROT", "w").writelines(trot)
+
     def export_chart(self, dest_path):
         dest_file = open(dest_path, "w")
         dest_file.write("Temps (ms), Centre gravité horizontal (cm), Centre gravité vertical (cm)\n")

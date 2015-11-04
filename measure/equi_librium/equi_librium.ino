@@ -23,6 +23,8 @@ const int P_HORLOGE = 5;
 // Broche connectée au DS du 74HC595
 const int P_DATA = 3;
 
+const boolean DEBUG = false;
+
 /*** Broche de controle de la carte SD ***/
 // Constante de sélection de la pin hardware
 const int P_CHIPSELECT = 10;
@@ -299,7 +301,10 @@ void writeSensorValue(File f)
     //long t1=millis();
     f.println(dataString);
     //long t2=millis();
-    //Serial.println(dataString);
+    if(DEBUG)
+    {
+      Serial.println(dataString);
+    }
     //long t3=millis();
     //Serial.println("Building : "+String(t1-t0)+"ms, Writing : "+String(t2-t1)+"ms, Serial : "+String(t3-t2)+"ms");
 }
@@ -376,7 +381,10 @@ void envoi_ordre(int dataPin, int clockPin, boolean sens, char donnee)
 
 void setup()
 {
-  //Serial.begin(9600);
+  if(DEBUG)
+  {
+    Serial.begin(9600);
+  }
   init_pins();
   delay(500);
   init_var();
