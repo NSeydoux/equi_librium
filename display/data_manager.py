@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from matplotlib import pyplot as plt
 from matplotlib import animation
+import numpy as np
 import ConfigParser
 import math
 
@@ -118,29 +119,33 @@ class Equilibrium_manager():
         return sec
 
     # Sépare le trot du pas facilement à partir des mesures de temps faites sur le terrain, au format min:sec
-    def split_data_file(self, input_path, start1, start2):
+    def split_data_file(self, input_path, start1, fin1, start2, fin2):
         source_file = open(input_path, "r")
         pas = []
         trot = []
         # INTERVAL is in ms, so let's convert everythong to ms
         start_pas = self.convert_min_to_sec(start1)*1000
+        fin_pas = self.convert_min_to_sec(fin1)*1000
         start_trot= self.convert_min_to_sec(start2)*1000
+        fin_trot = self.convert_min_to_sec(fin2)*1000
         data = source_file.readlines()
         elapsed_time = 0
         for line in data:
             #line = line.rstrip()
             if(len(line) > 32):
                 elapsed_time += self.INTERVAL
-                if (elapsed_time > start_pas and elapsed_time < start_trot):
+                if (elapsed_time > start_pas and elapsed_time < fin_pas):
                     pas.append(line)
-                elif(elapsed_time > start_trot):
+                elif(elapsed_time > start_trot and elapsed_time < fin_trot):
                     trot.append(line)
         open(input_path+"_PAS", "w").writelines(pas)
         open(input_path+"_TROT", "w").writelines(trot)
 
     def export_chart(self, dest_path):
-        dest_file = open(dest_path, "w")
-        dest_file.write("Temps (ms), Centre gravité horizontal (cm), Centre gravité vertical (cm)\n")
+        # Les deux listes suivantes vont accueillir les séries de données
+        # On les utilisera pour calculer moyenne et écart-type
+        x_axis = []
+        y_axis = []
         for i in range(len(self.sensor_values)-1):
             mass_center_x = 0
             mass_center_y = 0
@@ -163,8 +168,25 @@ class Equilibrium_manager():
             if(sum_y > 0):
                 mass_center_y = float(float(mass_center_y)/float(sum_y))
             if(sum_x > 0 or sum_y > 0):
-                dest_file.write(str(i*50)+","+str(mass_center_x)+","+str(mass_center_y)+"\n")
-
+                x_axis.append(mass_center_x)
+                y_axis.append(mass_center_y)
+        dest_file = open(dest_path, "w")
+        np_x = np.array(x_axis)
+        average_x = np.mean(np_x)
+        variance_x = np.var(np_x)
+        ecart_type_x = np.std(np_x)
+        np_y = np.array(y_axis)
+        average_y = np.mean(np_y)
+        variance_y = np.var(np_y)
+        ecart_type_y = np.std(np_y)
+        # On écrit sur les premières lignes du fichier les statistiques intéressantes
+        dest_file.write(";Moyenne;Variance;Écart-type\n")
+        dest_file.write("Axe x;"+str(average_x).replace(".", ",")+";"+str(variance_x).replace(".",",")+";"+str(ecart_type_x).replace(".", ",")+"\n")
+        dest_file.write("Axe y;"+str(average_y).replace(".", ",")+";"+str(variance_y).replace(".",",")+";"+str(ecart_type_y).replace(".", ",")+"\n")
+        # On donne ensuite l'ensemble des données, qui permettent de tracer les graphiques si nécessaire
+        dest_file.write("Temps (ms); Centre gravité horizontal (cm); Centre gravité vertical (cm)\n")
+        for i in range(len(x_axis)):
+            dest_file.write(str(i*self.INTERVAL)+";"+str(x_axis[i]).replace(".", ",")+";"+str(y_axis[i]).replace(".", ",")+"\n")
 
     def render_animation(self, interval=-1):
         if(interval==-1):

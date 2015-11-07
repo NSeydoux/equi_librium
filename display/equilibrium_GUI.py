@@ -156,20 +156,26 @@ class popupWindow(object):
         self.manager=manager
         top=self.top=Toplevel(master)
         Label(top,text="Début du pas (min:sec)").pack()
-        self.pas=Entry(top)
-        self.pas.pack()
+        self.pas_d=Entry(top)
+        self.pas_d.pack()
+        Label(top,text="Fin du pas (min:sec)").pack()
+        self.pas_f=Entry(top)
+        self.pas_f.pack()
         Label(top,text="Début du trot (min:sec)").pack()
-        self.trot=Entry(top)
-        self.trot.pack()
-        self.b=Button(top,text='Ok',command=self.split_data_file)
-        self.b.pack()
+        self.trot_d=Entry(top)
+        self.trot_d.pack()
+        Label(top,text="Fin du trot (min:sec)").pack()
+        self.trot_f=Entry(top)
+        self.trot_f.pack()
+        b1=Button(top,text='Séparer',command=self.split_data_file)
+        b1.pack()
 
     def split_data_file(self):
         ftypes = [('All files', '*')]
         dlg = tkFileDialog.Open(self.master, filetypes = ftypes)
         fl = dlg.show()
         if fl != '':
-            self.manager.split_data_file(fl, self.pas.get(), self.trot.get())
+            self.manager.split_data_file(fl, self.pas_d.get(), self.pas_f.get(), self.trot_d.get(), self.trot_f.get())
         self.top.destroy()
 
 def main():
