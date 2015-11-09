@@ -7,7 +7,7 @@ import ConfigParser
 import math
 
 # Intervalle entre deux instants de mesures (en ms)
-INTERVAL = 25
+INTERVAL = 22
 # Valeur du blanc : à partir de cette valeur, la couleur associée à la résistance sera blanc
 MIN_SENSOR = 500.0 # Original : 250.0
 MAX_SENSOR = 40000.0
@@ -138,8 +138,9 @@ class Equilibrium_manager():
                     pas.append(line)
                 elif(elapsed_time > start_trot and elapsed_time < fin_trot):
                     trot.append(line)
-        open(input_path+"_PAS", "w").writelines(pas)
-        open(input_path+"_TROT", "w").writelines(trot)
+        # The file is split befor the extention, hence the split(".")[0]
+        open(input_path.split(".")[0]+"_PAS.TXT", "w").writelines(pas)
+        open(input_path.split(".")[0]+"_TROT.TXT", "w").writelines(trot)
 
     def export_chart(self, dest_path):
         # Les deux listes suivantes vont accueillir les séries de données

@@ -116,7 +116,7 @@ class Equilibrium_GUI(Frame):
         dlg = tkFileDialog.SaveAs(self, filetypes = ftypes)
         fl = dlg.show()
         if fl != '':
-            self.manager.export_chart(fl)
+            self.manager.export_chart(fl+".csv")
 
     def render(self):
         self.manager.render_animation(self.slider.get())
