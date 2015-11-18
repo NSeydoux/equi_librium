@@ -28,6 +28,12 @@ class Equilibrium_manager():
         self.sensor_centers = []
         self.sensor_centers_x = []
         self.sensor_centers_y = []
+        # Liste des coordonnées des centres de gravité
+        self.mass_center_x = []
+        self.mass_center_y = []
+        # Centre du tapis
+        self.neutral_center_x = 32.0
+        self.neutral_center_y = 17.5
         # Default values
         self.INTERVAL = INTERVAL
         self.MAX_SENSOR = MAX_SENSOR
@@ -110,6 +116,32 @@ class Equilibrium_manager():
             self.sensor_values = sensor_values
             self.color_level = color_values
         print "Loaded : "+str(len(sensor_values))+" values\n"
+        # Calcul des centres de gravité
+        for i in range(len(self.sensor_values)-1):
+            mass_center_x = 0
+            mass_center_y = 0
+            sum_x = 0
+            sum_y = 0
+            for j in range(self.conf_map.get("largeur")):
+                for k in range(self.conf_map.get("hauteur")):
+                    # le placement des capteurs est stocké dans l'ordre dans la map de configuration
+                    # donc config_map.get("sensors_layout").index([j,k]) retourne l'index du capteur situé en j,k
+                    if([j, k] in self.conf_map.get("sensors_layout")):
+                        center = self.get_square_center(j, k)
+                        #color = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
+                        value = self.sensor_values[i%len(self.sensor_values)][self.conf_map.get("sensors_layout").index([j,k])]
+                        mass_center_x += value*center[0]
+                        sum_x += value
+                        mass_center_y += value*center[1]
+                        sum_y += value
+            if(sum_x > 0):
+                mass_center_x = float(float(mass_center_x)/float(sum_x))
+            if(sum_y > 0):
+                mass_center_y = float(float(mass_center_y)/float(sum_y))
+            if(sum_x > 0 or sum_y > 0):
+                self.mass_center_x.append(mass_center_x)
+                self.mass_center_y.append(mass_center_y)
+        print "Calcul des centres de gravité terminé"
 
     # Helper function, transforms a time in min:sec format to a sec format
     def convert_min_to_sec(self, time):
@@ -117,6 +149,18 @@ class Equilibrium_manager():
         min_ = int(min_)
         sec = 60*min_+int(sec)
         return sec
+
+    def display_data(self):
+        fig, ax = plt.subplots()
+        ax.scatter(self.mass_center_x, self.mass_center_y, alpha=0.5)
+        ax.scatter([self.neutral_center_x], [self.neutral_center_y], c='r', marker='x')
+        ax.plot([0, 64], [35, 35], 'r--')
+        ax.grid(True)
+        plt.axis([0, 64, 0, 64])
+        #plt.axis('scaled')
+        #plt.xlim([0, 64])
+        #plt.ylim([0, 35])
+        plt.show()
 
     # Sépare le trot du pas facilement à partir des mesures de temps faites sur le terrain, au format min:sec
     def split_data_file(self, input_path, start1, fin1, start2, fin2):

@@ -48,7 +48,7 @@ class Equilibrium_GUI(Frame):
         frame.columnconfigure(4, pad=3)
         frame.columnconfigure(5, pad=3)
         frame.columnconfigure(6, pad=3)
-
+        frame.columnconfigure(7, pad=3)
         frame.rowconfigure(0, pad=3)
         frame.rowconfigure(1, pad=3)
         frame.rowconfigure(2, pad=3)
@@ -59,14 +59,14 @@ class Equilibrium_GUI(Frame):
         b_export.grid(row=1, column=1)
         b_play = Button(master=frame, text='Play', command=self.render)
         b_play.grid(row=1, column=2)
-        #b_pause = Button(master=frame, text='Pause')
-        #b_pause.grid(row=1, column=3)
+        b_display = Button(master=frame, text='Afficher', command=self.display)
+        b_display.grid(row=1, column=3)
         b_import = Button(master=frame, text='Séparer pas/trot', command=self.open_split_file_popup)
-        b_import.grid(row=1, column=4)
+        b_import.grid(row=1, column=5)
         b_config = Button(master=frame, text='Configurer', command=self.open_conf_file)
-        b_config.grid(row=1, column=5)
+        b_config.grid(row=1, column=6)
         b_quit = Button(master=frame, text='Quitter', command=self._quit)
-        b_quit.grid(row=1, column=6)
+        b_quit.grid(row=1, column=7)
 
         slider_label_fast=Label(master=frame, text="Rapide")
         slider_label_fast.grid(row=2, column=2)
@@ -117,6 +117,9 @@ class Equilibrium_GUI(Frame):
         fl = dlg.show()
         if fl != '':
             self.manager.export_chart(fl+".csv")
+
+    def display(self):
+        self.manager.display_data()
 
     def render(self):
         self.manager.render_animation(self.slider.get())
