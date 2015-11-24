@@ -69,8 +69,8 @@ class Equilibrium_GUI(Frame):
         slider_label_large.grid(row=2, column=6)
         slider_label_tiny=Label(master=frame, text="Réduit")
         slider_label_tiny.grid(row=2, column=4)
-        self.diameter = Scale(master=frame, from_=1, to=25, orient=HORIZONTAL, length=100)
-        self.diameter.set(16)
+        self.diameter = Scale(master=frame, from_=1, to=35, resolution=0.1, orient=HORIZONTAL, length=100)
+        self.diameter.set(35)
         self.diameter.grid(row=2, column=5)
 
         self.configured_box = Checkbutton(master=frame, text="Configuré", variable=self.configured, state=DISABLED)

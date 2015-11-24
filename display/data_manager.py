@@ -25,7 +25,7 @@ class Equilibrium_manager():
         self.INTERVAL = INTERVAL
         self.MAX_SENSOR = MAX_SENSOR
         self.MIN_SENSOR = MIN_SENSOR
-        self.DEFAULT_DIAMETER = 15
+        self.DEFAULT_DIAMETER = 35
         # Objects initialisations
         self.conf_map = {}
         self.raw_measures = []
