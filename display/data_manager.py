@@ -21,6 +21,12 @@ ORD_A_O = 1.0 - COEF_DIR*math.log(MIN_SENSOR)
 class Equilibrium_manager():
 
     def __init__(self):
+         # Default values
+        self.INTERVAL = INTERVAL
+        self.MAX_SENSOR = MAX_SENSOR
+        self.MIN_SENSOR = MIN_SENSOR
+        self.DEFAULT_DIAMETER = 15
+        # Objects initialisations
         self.conf_map = {}
         self.raw_measures = []
         self.sensor_values = []
@@ -32,12 +38,12 @@ class Equilibrium_manager():
         self.mass_center_x = []
         self.mass_center_y = []
         # Centre du tapis
-        self.neutral_center_x = 32.0
-        self.neutral_center_y = 17.5
-        # Default values
-        self.INTERVAL = INTERVAL
-        self.MAX_SENSOR = MAX_SENSOR
-        self.MIN_SENSOR = MIN_SENSOR
+        #self.neutral_center_x = 32.0
+        #self.neutral_center_y = 17.5
+        self.neutral_center_x = 31.5
+        self.neutral_center_y = 13.5625
+        self.diameter = self.DEFAULT_DIAMETER
+
 
     # Cette fonction retourne les coordonnées du centre du carré (i,j) de la grille
     def get_square_center(self, i, j):
@@ -155,12 +161,22 @@ class Equilibrium_manager():
         ax.scatter(self.mass_center_x, self.mass_center_y, alpha=0.5)
         ax.scatter([self.neutral_center_x], [self.neutral_center_y], c='r', marker='x')
         ax.plot([0, 64], [35, 35], 'r--')
+        # test effect of x_data as argument of grid (1D array)
         ax.grid(True)
         plt.axis([0, 64, 0, 64])
+        circle=plt.Circle((self.neutral_center_x,self.neutral_center_y),self.diameter,color='r', fill=False)
+        fig.gca().add_artist(circle)
         #plt.axis('scaled')
         #plt.xlim([0, 64])
         #plt.ylim([0, 35])
         plt.show()
+
+    #p1 and p2 are couples of values : [x, y]
+    def dist(self, p1, p2):
+        return math.sqrt(pow(p2[1]-p1[1], 2)+pow(p2[0]-p1[0], 2))
+
+    def set_diameter(self, d):
+        self.diameter = d
 
     # Sépare le trot du pas facilement à partir des mesures de temps faites sur le terrain, au format min:sec
     def split_data_file(self, input_path, start1, fin1, start2, fin2):
@@ -212,7 +228,7 @@ class Equilibrium_manager():
                 mass_center_x = float(float(mass_center_x)/float(sum_x))
             if(sum_y > 0):
                 mass_center_y = float(float(mass_center_y)/float(sum_y))
-            if(sum_x > 0 or sum_y > 0):
+            if((sum_x > 0 or sum_y > 0) and self.dist([self.neutral_center_x, self.neutral_center_y], [mass_center_x, mass_center_y])<self.diameter):
                 x_axis.append(mass_center_x)
                 y_axis.append(mass_center_y)
         dest_file = open(dest_path, "w")

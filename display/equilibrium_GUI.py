@@ -26,6 +26,7 @@ class Equilibrium_GUI(Frame):
         self.manager = Equilibrium_manager()
         # Slider setting the animation pace, in ms/frame
         self.slider = None
+        self.diameter = None
         # Variables making sure data is properly set before rendering
         # associated with checkboxes to give user feedback
         self.configured = IntVar()
@@ -39,19 +40,7 @@ class Equilibrium_GUI(Frame):
         #self.plot_figure(self.parent)
 
     def init_UI(self, frame):
-        #self.wm_title("Equi-librium")
         frame.title("Pegasus system")
-        frame.columnconfigure(0, pad=3)
-        frame.columnconfigure(1, pad=3)
-        frame.columnconfigure(2, pad=3)
-        frame.columnconfigure(3, pad=3)
-        frame.columnconfigure(4, pad=3)
-        frame.columnconfigure(5, pad=3)
-        frame.columnconfigure(6, pad=3)
-        frame.columnconfigure(7, pad=3)
-        frame.rowconfigure(0, pad=3)
-        frame.rowconfigure(1, pad=3)
-        frame.rowconfigure(2, pad=3)
 
         b_import = Button(master=frame, text='Importer', command=self.open_data_file)
         b_import.grid(row=1, column=0)
@@ -76,11 +65,19 @@ class Equilibrium_GUI(Frame):
         self.slider.set(25)
         self.slider.grid(row=2, column=1)
 
+        slider_label_large=Label(master=frame, text="Large")
+        slider_label_large.grid(row=2, column=6)
+        slider_label_tiny=Label(master=frame, text="Réduit")
+        slider_label_tiny.grid(row=2, column=4)
+        self.diameter = Scale(master=frame, from_=1, to=25, orient=HORIZONTAL, length=100)
+        self.diameter.set(16)
+        self.diameter.grid(row=2, column=5)
+
         self.configured_box = Checkbutton(master=frame, text="Configuré", variable=self.configured, state=DISABLED)
-        self.configured_box.grid(row=2, column=4)
+        self.configured_box.grid(row=3, column=0)
 
         self.loaded_box = Checkbutton(master=frame, text="Données chargées", variable=self.loaded,state=DISABLED)
-        self.loaded_box.grid(row=2, column=5)
+        self.loaded_box.grid(row=3, column=1)
 
     def test_auto_conf(self):
         onlyfiles = [ f for f in listdir(".") if isfile(join(".",f)) ]
@@ -116,9 +113,11 @@ class Equilibrium_GUI(Frame):
         dlg = tkFileDialog.SaveAs(self, filetypes = ftypes)
         fl = dlg.show()
         if fl != '':
+            self.manager.set_diameter(self.diameter.get())
             self.manager.export_chart(fl+".csv")
 
     def display(self):
+        self.manager.set_diameter(self.diameter.get())
         self.manager.display_data()
 
     def render(self):
